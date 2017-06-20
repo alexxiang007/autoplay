@@ -2,7 +2,9 @@ import pyautogui
 from time import sleep
 import cv2
 import numpy as np
+import pyscreeze
 from PIL import Image
+from matplotlib import pyplot as plt
 
 # functions
 def compare_pix(a,b):
@@ -79,11 +81,97 @@ def find_pic(ux,uy,dx,dy,img,quality=0.8,repeat=1,interval=0.05, **kwargs):
             return max_xy
         sleep(interval)
 
-    return (-1,-1)
+    return None
 
 # find color
-def find_pix(ux,uy,dx,dy,r,g,b,quality=0.8,repeat=1,interval=0.05, **kwargs):
- 
+def sort(xy,score,limit=1000):
+    print(xy)
+    length = len(xy)
+    if length == 0:        
+        return None,None
+        
+    index = sorted(range(length),key=lambda k:score[k])
+    xy_return = []
+    score_return = []
+    for i in range(0,length,1):
+        xy_return.append(xy[index[i]])
+        score_return.append(score[index[i]])
+        if i>= limit:
+            break
+    return xy_return,score_return
+
+def hex_to_rgb(hex):
+    hex = hex.lstrip('#')
+    return(tuple(int(hex[i:i+len(hex) // 3], 16) for i in range(0,len(hex),len(hex) // 3)))
+
+def rgp_to_hex(rgb):
+    return '#%02x%02x%02x' % rgb
+
+def find_pix(ux,uy,dx,dy,color,quality=0.8,repeat=1,interval=0.05,limit=1000, **kwargs):
+    
+    if isinstance(color, str):
+        rgb = hex_to_rgb(color)
+    elif isinstance(color, tuple):        
+        rgb = color
+    else:
+        return None,None
+
+    r = rgb[0]
+    g = rgb[1]
+    b = rgb[2]
+
+    region = (ux,uy,dx,dy)
+    img1_data = Image.new('RGB',(1,1))
+    img1_data.putdata([(r,g,b)])
+    img1 = np.asarray(img1_data)
+
+    for i in range(0,repeat,1):        
+        img2 = np.array(pyscreeze.screenshot(region=region))
+        w1,h1,cn1 = img1.shape
+        w2,h2,cn2 = img2.shape
+        result = cv2.matchTemplate(img1,img2,cv2.TM_SQDIFF)/300
+        loc = np.where(result<=quality)
+        xy = []
+        score = []
+        for pt in zip(*loc[::-1]):
+            if pt == (0,0):
+                continue
+            xy.append(pt)
+            score.append(result[pt[1],pt[0]])
+        if len(xy)>=1:
+            xy,score = sort(xy,score)
+            return xy,score
+
+        sleep(interval)
+
+    return None,None
+
+def find_multi_pix(ux,uy,dx,dy,colors,quality=0.8,repeat=1,interval=0.05,limit=1000, **kwargs):
+    if isinstance(colors, str):
+        points = colors.split(",")
+        length = len(points)
+        rel_xy = []
+        colors = []
+        for i in range(0,length,1):
+            if i == 0:
+                colors.append(points[i].lstrip('"').rstrip('"'))
+                rel_xy.append((0,0))
+            else:               
+                x,y,color = points[i].split("|")
+                colors.append(color.lstrip('"').rstrip('"'))
+                rel_xy.append((int(x.lstrip('"')),int(y.rstrip('"'))))
+    else:
+        return None
+
+    xy,score = find_pix(ux,uy,dx,dy,colors[0],quality=0.9)
+    num_starting_pts = len(score)
+
+    for i in range(0,num_starting_pts,1):
+        
+
+find_multi_pix(0,0,1920,1080,'"FFFFFF","1|-11|284C27,1|-11|284C27"')
+# xy,score = find_pix(0,0,1920,1080,"#FFFFFF")
+# print(xy)
     
 # find_pix(0,0,1920,1080,0,0,0)
 # find word
