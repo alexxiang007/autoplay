@@ -34,8 +34,8 @@ def restore_wnd(hwnds):
 		hwnds = [hwnds]
 	for i in range(0,len(hwnds),1):
 		win32gui.ShowWindow(hwnds[i], win32con.SW_RESTORE)	
-		win32gui.SetForegroundWindow(hwnds[i])
-		win32gui.SetActiveWindow(hwnds[i])
+# 		win32gui.SetForegroundWindow(hwnds[i])
+# 		win32gui.SetActiveWindow(hwnds[i])
 
 def close_wnd(hwnds):
 	if isinstance(hwnds,int):
